@@ -1,33 +1,87 @@
 #include <iostream>
+#include <fstream>
 using namespace std;
 
 struct User
 {
     string username;
     int password;
-    string email;
     double balance;
 };
 
 User users[100];
 
-int totalUser;
+int totalUser = 0;
 int logedInUser = -1;
+
+void saveUsers()
+{
+    ofstream file("users.txt");
+
+    if (!file)
+    {
+        cout << "\nError: Could not open users.txt\n";
+        return;
+    }
+
+    for (int i = 0; i < totalUser; i++)
+    {
+        file << users[i].username << " "
+             << users[i].password << " "
+             << users[i].balance << endl;
+    }
+
+    file.close();
+}
+
+void loadUsers()
+{
+    ifstream file("users.txt");
+
+    if (!file)
+    {
+        totalUser = 0;
+        return;
+    }
+
+    totalUser = 0;
+
+    while (totalUser < 100 &&
+           file >> users[totalUser].username
+                >> users[totalUser].password
+                >> users[totalUser].balance)
+    {
+        totalUser++;
+    }
+
+    file.close();
+}
 
 int createAccount()
 {
-    cout << "\nCreate Your Account: \n\n";
+    if (totalUser >= 100)
+    {
+        cout << "\nUser limit reached.\n";
+        return 0;
+    }
 
-    cout << "Username: " << endl;
+    cout << "\nCreate Your Account:\n\n";
+
+    cout << "Username: ";
     cin >> users[totalUser].username;
 
-    cout << "Password: " << endl;
+    cout << "Password: ";
     cin >> users[totalUser].password;
 
-    cout << "Email: " << endl;
-    cin >> users[totalUser].email;
+    users[totalUser].balance = 0;
 
     totalUser++;
+
+    saveUsers();
+
+    cout << "\nAccount Created Successfully!\n";
+
+    return 0;
 }
 
 int login()
@@ -35,19 +89,19 @@ int login()
     string username;
     int password;
 
-    cout << "\nLogin \n\n";
+    if (logedInUser != -1)
+    {
+        cout << "\nYou are already logged in.\n";
+        return 0;
+    }
+
+    cout << "\nLogin\n\n";
 
     cout << "Enter your Username: ";
     cin >> username;
 
     cout << "Enter your Password: ";
     cin >> password;
-
-    if (logedInUser != -1)
-    {
-        cout << "You are already login.\n";
-        return 0;
-    }
 
     for (int i = 0; i < totalUser; i++)
     {
@@ -56,6 +110,7 @@ int login()
             if (password == users[i].password)
             {
                 logedInUser = i;
+
                 cout << "\nLogin Successful!\n";
                 return 0;
             }
@@ -65,45 +120,62 @@ int login()
                 return 0;
             }
         }
-        else
-        {
-            cout << "\nUsernmae and Password is not found.\n";
-        }
     }
+
+    cout << "\nUsername is not found.\n";
+
+    return 0;
 }
 
 int deposit()
 {
     if (logedInUser == -1)
     {
-        cout << "\nPlease login to deopsit you amount . \n";
+        cout << "\nPlease login to deposit your amount.\n";
         return 0;
     }
 
     double amount;
 
-    cout << "\nEnter your amount to deposit" << endl;
-    cout << "\n$";
+    cout << "\nEnter your amount to deposit\n";
+    cout << "$";
     cin >> amount;
 
+    if (amount <= 0)
+    {
+        cout << "\nInvalid amount.\n";
+        return 0;
+    }
+
     users[logedInUser].balance += amount;
+
+    saveUsers();
+
     cout << "\nDeposit Successful!\n";
     cout << "New Balance: $" << users[logedInUser].balance << endl;
+
+    return 0;
 }
 
 int withdraw()
 {
     if (logedInUser == -1)
     {
-        cout << "\nPlease login to withdraw you amount . \n";
+        cout << "\nPlease login to withdraw your amount.\n";
         return 0;
     }
 
     double amount;
 
-    cout << "\nEnter your amount to withdraw" << endl;
-    cout << "\n$";
+    cout << "\nEnter your amount to withdraw\n";
+    cout << "$";
     cin >> amount;
+
+    if (amount <= 0)
+    {
+        cout << "\nInvalid amount.\n";
+        return 0;
+    }
 
     if (amount > users[logedInUser].balance)
     {
@@ -112,8 +184,13 @@ int withdraw()
     }
 
     users[logedInUser].balance -= amount;
+
+    saveUsers();
+
     cout << "\nWithdraw Successful!\n";
     cout << "New Balance: $" << users[logedInUser].balance << endl;
+
+    return 0;
 }
 
 int transfer()
@@ -164,17 +241,19 @@ int transfer()
 
     if (amount > users[logedInUser].balance)
     {
-        cout << "\nBallance kam hai.\n";
+        cout << "\nBalance kam hai.\n";
         return 0;
     }
 
     users[logedInUser].balance -= amount;
     users[receiverUser].balance += amount;
 
+    saveUsers();
+
     cout << "\nTransfer Successful!\n";
     cout << "Sent to: " << users[receiverUser].username << endl;
-    cout << "Amount: " << amount << endl;
-    cout << "Remaining Balance: "
+    cout << "Amount: $" << amount << endl;
+    cout << "Remaining Balance: $"
          << users[logedInUser].balance << endl;
 
     return 0;
@@ -182,41 +261,49 @@ int transfer()
 
 int changePin()
 {
-    int currentPassword;
     if (logedInUser == -1)
     {
         cout << "\nPlease login first.\n";
         return 0;
     }
 
-    cout << "Enter yoour current password: ";
+    int currentPassword;
+
+    cout << "Enter your current password: ";
     cin >> currentPassword;
+
     if (currentPassword == users[logedInUser].password)
     {
         cout << "Enter your new password: ";
         cin >> users[logedInUser].password;
+
+        saveUsers();
+
+        cout << "\nPassword changed successfully.\n";
     }
     else
     {
-        cout << "Password is incorrect";
+        cout << "\nPassword is incorrect.\n";
     }
+
     return 0;
 }
 
 int displayAccount()
 {
-
     if (logedInUser == -1)
     {
         cout << "\nPlease login first.\n";
         return 0;
     }
 
-    cout << "\nAccount Details: \n";
+    cout << "\nAccount Details:\n";
 
-    cout << "Username: " << users[logedInUser].username << endl;
-    cout << "Email: " << users[logedInUser].email << endl;
-    cout << "Balance: " << "$" << users[logedInUser].balance << endl;
+    cout << "Username: "
+         << users[logedInUser].username << endl;
+
+    cout << "Balance: $"
+         << users[logedInUser].balance << endl;
 
     return 0;
 }
@@ -232,16 +319,19 @@ int logout()
     cout << "\nLogout Successful!\n";
 
     logedInUser = -1;
+
     return 0;
 }
 
 int main()
 {
+    loadUsers();
+
     int choice;
 
     do
     {
-        cout << "\n Bank System\n  \n";
+        cout << "\nBank System\n\n";
 
         cout << "1. Create Account\n";
         cout << "2. Login\n";
@@ -253,43 +343,52 @@ int main()
         cout << "8. Logout\n";
         cout << "9. Exit\n";
 
-        cout << "Enter your choice" << endl;
+        cout << "\nEnter your choice: ";
         cin >> choice;
 
         switch (choice)
         {
         case 1:
             createAccount();
-            logedInUser = totalUser - 1;
             break;
+
         case 2:
             login();
             break;
+
         case 3:
             deposit();
             break;
+
         case 4:
             withdraw();
             break;
+
         case 5:
             transfer();
             break;
+
         case 6:
             changePin();
             break;
+
         case 7:
             displayAccount();
             break;
+
         case 8:
             logout();
             break;
+
         case 9:
             cout << "\nProgram Exited.\n";
             break;
+
         default:
-            cout << "\ninvalid choice";
+            cout << "\nInvalid choice.\n";
             break;
         }
+
     } while (choice != 9);
 
     return 0;
